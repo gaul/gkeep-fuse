@@ -3,7 +3,6 @@
 # TODO: cache notes to avoid duplicate lookups
 # TODO: directories for labels
 # TODO: handle duplicate titles
-# TODO: remove note
 # TODO: write access
 
 import errno
@@ -100,6 +99,13 @@ class GKeepFuse(Fuse):
             buf = b''
         print("returning: " + str(len(buf)))
         return buf
+
+    def unlink(self, path):
+        note = self._get_note_by_path(path)
+        if note is None:
+            return -errno.ENOENT
+        note.trashed = True
+        self.keep.sync()
 
 def main():
     USER = os.environ['GOOGLE_KEEP_USER']
