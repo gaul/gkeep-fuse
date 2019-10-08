@@ -14,12 +14,6 @@ import fuse
 import gkeepapi
 from fuse import Fuse
 
-USER = os.environ['GOOGLE_KEEP_USER']
-PASSWORD = os.environ['GOOGLE_KEEP_PASSWORD']
-
-keep = gkeepapi.Keep()
-success = keep.login(USER, PASSWORD)
-
 fuse.fuse_python_api = (0, 2)
 
 class MyStat(fuse.Stat):
@@ -36,10 +30,14 @@ class MyStat(fuse.Stat):
         self.st_ctime = 0
 
 class GKeepFuse(Fuse):
+    def __init__(self, keep, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.keep = keep
+
     def _get_note_by_path(self, path):
-        note = keep.get(path[1:])
+        note = self.keep.get(path[1:])
         if note is None:
-            notes = keep.find(query=path[1:])
+            notes = self.keep.find(query=path[1:])
             for note in notes:
                 if note.title == path[1:]:
                     break
@@ -70,7 +68,7 @@ class GKeepFuse(Fuse):
         print("readdir: " + path)
         yield fuse.Direntry('.')
         yield fuse.Direntry('..')
-        for note in keep.all():
+        for note in self.keep.all():
             if note.deleted or note.trashed:
                 continue
             # TODO: use modification date instead of id?
@@ -104,11 +102,17 @@ class GKeepFuse(Fuse):
         return buf
 
 def main():
+    USER = os.environ['GOOGLE_KEEP_USER']
+    PASSWORD = os.environ['GOOGLE_KEEP_PASSWORD']
+
+    keep = gkeepapi.Keep()
+    success = keep.login(USER, PASSWORD)
+
     usage="""
 Google Keep filesystem
 
 """ + Fuse.fusage
-    server = GKeepFuse(version="%prog " + fuse.__version__, usage=usage, dash_s_do='setsingle')
+    server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do='setsingle')
 
     server.parse(errex=1)
     server.main()
