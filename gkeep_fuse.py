@@ -38,13 +38,13 @@ class MyStat(fuse.Stat):
 class GKeepFuse(Fuse):
     def _get_note_by_path(self, path):
         note = keep.get(path[1:])
-        if note is not None:
+        if note is None:
+            notes = keep.find(query=path[1:])
+            for note in notes:
+                if note.title == path[1:]:
+                    break
+        if note is not None and (not note.deleted or not note.trashed):
             return note
-
-        notes = keep.find(query=path[1:])
-        for note in notes:
-            if note.title == path[1:]:
-                return note
         return None
 
     def getattr(self, path):
@@ -71,6 +71,8 @@ class GKeepFuse(Fuse):
         yield fuse.Direntry('.')
         yield fuse.Direntry('..')
         for note in keep.all():
+            if note.deleted or note.trashed:
+                continue
             # TODO: use modification date instead of id?
             entry = fuse.Direntry(note.title if note.title != '' else note.id)
             yield entry
