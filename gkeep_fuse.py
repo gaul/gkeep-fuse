@@ -71,7 +71,7 @@ class GKeepFuse(Fuse):
             yield entry
 
     def open(self, path: str, flags: int) -> Optional[int]:
-        print("open: " + path)
+        print("open: " + path + " " + hex(flags))
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
@@ -99,6 +99,7 @@ class GKeepFuse(Fuse):
         return buf
 
     def unlink(self, path: str) -> Optional[int]:
+        print("unlink: " + path)
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
