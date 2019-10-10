@@ -107,6 +107,15 @@ class GKeepFuse(Fuse):
         self.keep.sync()
         return None
 
+    def rename(self, oldpath: str, newpath: str) -> Optional[int]:
+        print("rename: " + oldpath + " " + newpath)
+        note = self._get_note_by_path(oldpath)
+        if note is None:
+            return -errno.ENOENT
+        note.title = newpath[1:]
+        self.keep.sync()
+        return None
+
 def main() -> None:
     USER = os.environ['GOOGLE_KEEP_USER']
     PASSWORD = os.environ['GOOGLE_KEEP_PASSWORD']
