@@ -11,12 +11,13 @@ import stat
 
 import fuse
 import gkeepapi
+from typing import Any, Iterator, Optional, Union
 from fuse import Fuse
 
 fuse.fuse_python_api = (0, 2)
 
 class MyStat(fuse.Stat):
-    def __init__(self):
+    def __init__(self) -> None:
         self.st_mode = 0
         self.st_ino = 0
         self.st_dev = 0
@@ -29,11 +30,11 @@ class MyStat(fuse.Stat):
         self.st_ctime = 0
 
 class GKeepFuse(Fuse):
-    def __init__(self, keep, *args, **kwargs):
+    def __init__(self, keep: gkeepapi.Keep, *args: Any, **kwargs: str) -> None:
         super().__init__(*args, **kwargs)
         self.keep = keep
 
-    def _get_note_by_path(self, path):
+    def _get_note_by_path(self, path: str) -> Optional[gkeepapi.node.TopLevelNode]:
         note = self.keep.get(path[1:])
         if note is None:
             notes = self.keep.find(query=path[1:])
@@ -44,7 +45,7 @@ class GKeepFuse(Fuse):
             return note
         return None
 
-    def getattr(self, path):
+    def getattr(self, path: str) -> Union[int, MyStat]:
         print("getattr: " + path)
         st = MyStat()
         if path == '/':
@@ -63,7 +64,7 @@ class GKeepFuse(Fuse):
         st.st_atime = st.st_mtime = st.st_ctime = note.timestamps.created.timestamp()
         return st
 
-    def readdir(self, path, offset):
+    def readdir(self, path: str, offset: int) -> Iterator[fuse.Direntry]:
         print("readdir: " + path)
         yield fuse.Direntry('.')
         yield fuse.Direntry('..')
@@ -74,7 +75,7 @@ class GKeepFuse(Fuse):
             entry = fuse.Direntry(note.title if note.title != '' else note.id)
             yield entry
 
-    def open(self, path, flags):
+    def open(self, path: str, flags: int) -> Optional[int]:
         print("open: " + path)
         note = self._get_note_by_path(path)
         if note is None:
@@ -84,7 +85,9 @@ class GKeepFuse(Fuse):
         if (flags & accmode) != os.O_RDONLY:
             return -errno.EACCES
 
-    def read(self, path, size, offset):
+        return None
+
+    def read(self, path: str, size: int, offset: int) -> Union[int, bytes]:
         print("read: " + path + " " + str(size) + " " + str(offset))
         note = self._get_note_by_path(path)
         if note is None:
@@ -100,14 +103,15 @@ class GKeepFuse(Fuse):
         print("returning: " + str(len(buf)))
         return buf
 
-    def unlink(self, path):
+    def unlink(self, path: str) -> Optional[int]:
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
         note.trashed = True
         self.keep.sync()
+        return None
 
-def main():
+def main() -> None:
     USER = os.environ['GOOGLE_KEEP_USER']
     PASSWORD = os.environ['GOOGLE_KEEP_PASSWORD']
 
