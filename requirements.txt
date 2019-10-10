@@ -1,2 +1,2 @@
-fuse-python
-gkeepapi
+fuse-python==1.0.0
+gkeepapi==0.11.8
