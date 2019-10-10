@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: cache notes to avoid duplicate lookups
-# TODO: directories for labels
-# TODO: handle duplicate titles
-# TODO: write access
-
 import errno
 import os
 import stat
