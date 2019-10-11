@@ -1,0 +1,7 @@
+[flake8]
+exclude = env
+max-line-length=1000
+
+# flake8-quotes
+inline-quotes = "
+multiline-quotes = """

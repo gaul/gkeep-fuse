@@ -3,13 +3,15 @@
 import errno
 import os
 import stat
+from typing import Any, Dict, Iterator, Optional, Union
 
 import fuse
-import gkeepapi
-from typing import Any, Iterator, Optional, Dict, Union
 from fuse import Fuse
 
+import gkeepapi
+
 fuse.fuse_python_api = (0, 2)
+
 
 class MyStat(fuse.Stat):
     def __init__(self) -> None:
@@ -23,6 +25,7 @@ class MyStat(fuse.Stat):
         self.st_atime = 0
         self.st_mtime = 0
         self.st_ctime = 0
+
 
 class GKeepFuse(Fuse):
     def __init__(self, keep: gkeepapi.Keep, *args: Any, **kwargs: str) -> None:
@@ -44,7 +47,7 @@ class GKeepFuse(Fuse):
     def getattr(self, path: str) -> Union[int, MyStat]:
         print("getattr: " + path)
         st = MyStat()
-        if path == '/':
+        if path == "/":
             st.st_mode = stat.S_IFDIR | 0o755
             st.st_nlink = 2
             return st
@@ -55,20 +58,20 @@ class GKeepFuse(Fuse):
 
         st.st_mode = stat.S_IFREG | 0o444
         st.st_nlink = 1
-        st.st_size = len(bytes(note.text, 'utf-8'))
+        st.st_size = len(bytes(note.text, "utf-8"))
         st.st_mtime = note.timestamps.edited.timestamp()
         st.st_ctime = note.timestamps.updated.timestamp()
         return st
 
     def readdir(self, path: str, offset: int) -> Iterator[fuse.Direntry]:
         print("readdir: " + path)
-        yield fuse.Direntry('.')
-        yield fuse.Direntry('..')
+        yield fuse.Direntry(".")
+        yield fuse.Direntry("..")
         for note in self.keep.all():
             if note.deleted or note.trashed:
                 continue
             # TODO: use modification date instead of id?
-            entry = fuse.Direntry(note.title if note.title != '' else note.id)
+            entry = fuse.Direntry(note.title if note.title != "" else note.id)
             yield entry
 
     def create(self, path: str, flags: int, mode: int) -> Optional[int]:
@@ -100,9 +103,9 @@ class GKeepFuse(Fuse):
         if offset < slen:
             if offset + size > slen:
                 size = slen - offset
-            buf = bytes(note.text, 'utf-8')[offset:offset+size]
+            buf = bytes(note.text, "utf-8")[offset:offset+size]
         else:
-            buf = b''
+            buf = b""
         print("returning: " + str(len(buf)))
         return buf
 
@@ -142,7 +145,7 @@ class GKeepFuse(Fuse):
         buf = self.buffers.get(path)
         if buf is None:
             return
-        text = str(buf, 'utf-8')
+        text = str(buf, "utf-8")
         note = self._get_note_by_path(path)
         if note is None:
             note = self.keep.createNote(path[1:], text)
@@ -152,21 +155,23 @@ class GKeepFuse(Fuse):
         self.keep.sync()
         del self.buffers[path]
 
+
 def main() -> None:
-    USER = os.environ['GOOGLE_KEEP_USER']
-    PASSWORD = os.environ['GOOGLE_KEEP_PASSWORD']
+    USER = os.environ["GOOGLE_KEEP_USER"]
+    PASSWORD = os.environ["GOOGLE_KEEP_PASSWORD"]
 
     keep = gkeepapi.Keep()
-    success = keep.login(USER, PASSWORD)
+    keep.login(USER, PASSWORD)
 
-    usage="""
+    usage = """
 Google Keep filesystem
 
 """ + Fuse.fusage
-    server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do='setsingle')
+    server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do="setsingle")
 
     server.parse(errex=1)
     server.main()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
