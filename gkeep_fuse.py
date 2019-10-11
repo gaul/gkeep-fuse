@@ -56,8 +56,8 @@ class GKeepFuse(Fuse):
         st.st_mode = stat.S_IFREG | 0o444
         st.st_nlink = 1
         st.st_size = len(bytes(note.text, 'utf-8'))
-        # TODO: use individual times
-        st.st_atime = st.st_mtime = st.st_ctime = note.timestamps.created.timestamp()
+        st.st_mtime = note.timestamps.edited.timestamp()
+        st.st_ctime = note.timestamps.updated.timestamp()
         return st
 
     def readdir(self, path: str, offset: int) -> Iterator[fuse.Direntry]:
