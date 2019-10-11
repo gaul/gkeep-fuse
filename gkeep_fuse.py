@@ -6,7 +6,7 @@ import stat
 
 import fuse
 import gkeepapi
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, Optional, Dict, Union
 from fuse import Fuse
 
 fuse.fuse_python_api = (0, 2)
@@ -28,6 +28,7 @@ class GKeepFuse(Fuse):
     def __init__(self, keep: gkeepapi.Keep, *args: Any, **kwargs: str) -> None:
         super().__init__(*args, **kwargs)
         self.keep = keep
+        self.buffers: Dict[str, bytearray] = {}
 
     def _get_note_by_path(self, path: str) -> Optional[gkeepapi.node.TopLevelNode]:
         note = self.keep.get(path[1:])
@@ -70,15 +71,22 @@ class GKeepFuse(Fuse):
             entry = fuse.Direntry(note.title if note.title != '' else note.id)
             yield entry
 
+    def create(self, path: str, flags: int, mode: int) -> Optional[int]:
+        print("create: " + path + " " + hex(flags) + " " + hex(mode))
+        note = self._get_note_by_path(path)
+        if note is None:
+            note = self.keep.createNote(path[1:], "")
+            self.keep.sync()
+        return None
+
     def open(self, path: str, flags: int) -> Optional[int]:
         print("open: " + path + " " + hex(flags))
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
 
-        accmode = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
-        if (flags & accmode) != os.O_RDONLY:
-            return -errno.EACCES
+        if (flags & (os.O_WRONLY | os.O_RDWR)) != 0:
+            self.buffers[path] = bytearray(bytes(note.text, "utf-8"))
 
         return None
 
@@ -115,6 +123,34 @@ class GKeepFuse(Fuse):
         note.title = newpath[1:]
         self.keep.sync()
         return None
+
+    def truncate(self, path: str, size: int) -> Optional[int]:
+        print("truncate: " + path + " " + str(size))
+        self.buffers[path] = bytearray()
+        return None
+
+    def write(self, path: str, buf: bytes, offset: int) -> int:
+        print("write: " + path + " " + str(len(buf)) + " " + str(offset))
+        array = self.buffers.get(path, bytearray())
+        if offset != len(array):
+            return -errno.EINVAL
+        array[offset:offset+len(buf)] = buf
+        return len(buf)
+
+    def release(self, path: str, flags: int) -> None:
+        print("release: " + path + " " + hex(flags))
+        buf = self.buffers.get(path)
+        if buf is None:
+            return
+        text = str(buf, 'utf-8')
+        note = self._get_note_by_path(path)
+        if note is None:
+            note = self.keep.createNote(path[1:], text)
+        else:
+            note.title = path[1:]
+            note.text = text
+        self.keep.sync()
+        del self.buffers[path]
 
 def main() -> None:
     USER = os.environ['GOOGLE_KEEP_USER']

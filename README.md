@@ -1,7 +1,7 @@
 # gkeep-fuse
 
 FUSE interface for [Google Keep](https://www.google.com/keep/).  Currently
-supports listing, reading, renaming, and trashing notes.
+supports listing, creating, reading, writing, renaming, and removing notes.
 
 ## Installation
 
