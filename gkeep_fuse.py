@@ -13,7 +13,7 @@ import gkeepapi
 fuse.fuse_python_api = (0, 2)
 
 
-class MyStat(fuse.Stat):
+class MyStat(fuse.Stat):  # type: ignore
     def __init__(self) -> None:
         self.st_mode = 0
         self.st_ino = 0
@@ -27,7 +27,7 @@ class MyStat(fuse.Stat):
         self.st_ctime = 0
 
 
-class GKeepFuse(Fuse):
+class GKeepFuse(Fuse):  # type: ignore
     def __init__(self, keep: gkeepapi.Keep, *args: Any, **kwargs: str) -> None:
         super().__init__(*args, **kwargs)
         self.keep = keep
