@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import errno
+import logging
 import os
 import stat
+import sys
 from typing import Any, Dict, Iterator, Optional, Union
 
 import fuse
@@ -45,7 +47,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return None
 
     def getattr(self, path: str) -> Union[int, MyStat]:
-        print("getattr: " + path)
+        logging.debug("getattr: %s", path)
         st = MyStat()
         if path == "/":
             st.st_mode = stat.S_IFDIR | 0o755
@@ -64,7 +66,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return st
 
     def readdir(self, path: str, offset: int) -> Iterator[fuse.Direntry]:
-        print("readdir: " + path)
+        logging.debug("readdir: %s", path)
         yield fuse.Direntry(".")
         yield fuse.Direntry("..")
         for note in self.keep.all():
@@ -75,7 +77,7 @@ class GKeepFuse(Fuse):  # type: ignore
             yield entry
 
     def create(self, path: str, flags: int, mode: int) -> Optional[int]:
-        print("create: " + path + " " + hex(flags) + " " + hex(mode))
+        logging.debug("create: %s %x %x", path, flags, mode)
         note = self._get_note_by_path(path)
         if note is None:
             note = self.keep.createNote(path[1:], "")
@@ -83,7 +85,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return None
 
     def open(self, path: str, flags: int) -> Optional[int]:
-        print("open: " + path + " " + hex(flags))
+        logging.debug("open: %s %x", path, flags)
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
@@ -94,7 +96,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return None
 
     def read(self, path: str, size: int, offset: int) -> Union[int, bytes]:
-        print("read: " + path + " " + str(size) + " " + str(offset))
+        logging.debug("read: %s %i %i", path, size, offset)
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
@@ -106,11 +108,10 @@ class GKeepFuse(Fuse):  # type: ignore
             buf = bytes(note.text, "utf-8")[offset:offset+size]
         else:
             buf = b""
-        print("returning: " + str(len(buf)))
         return buf
 
     def unlink(self, path: str) -> Optional[int]:
-        print("unlink: " + path)
+        logging.debug("unlink: %s", path)
         note = self._get_note_by_path(path)
         if note is None:
             return -errno.ENOENT
@@ -119,7 +120,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return None
 
     def rename(self, oldpath: str, newpath: str) -> Optional[int]:
-        print("rename: " + oldpath + " " + newpath)
+        logging.debug("rename: %s %s", oldpath, newpath)
         note = self._get_note_by_path(oldpath)
         if note is None:
             return -errno.ENOENT
@@ -128,12 +129,12 @@ class GKeepFuse(Fuse):  # type: ignore
         return None
 
     def truncate(self, path: str, size: int) -> Optional[int]:
-        print("truncate: " + path + " " + str(size))
+        logging.debug("truncate: %s %i", path, size)
         self.buffers[path] = bytearray()
         return None
 
     def write(self, path: str, buf: bytes, offset: int) -> int:
-        print("write: " + path + " " + str(len(buf)) + " " + str(offset))
+        logging.debug("write: %s %i %i", path, len(buf), offset)
         array = self.buffers.get(path, bytearray())
         if offset != len(array):
             return -errno.EINVAL
@@ -141,7 +142,7 @@ class GKeepFuse(Fuse):  # type: ignore
         return len(buf)
 
     def release(self, path: str, flags: int) -> None:
-        print("release: " + path + " " + hex(flags))
+        logging.debug("release: %s %x", path, flags)
         buf = self.buffers.get(path)
         if buf is None:
             return
@@ -168,6 +169,9 @@ Google Keep filesystem
 
 """ + Fuse.fusage
     server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do="setsingle")
+
+    if "-d" in sys.argv:
+        logging.basicConfig(level=logging.DEBUG)
 
     server.parse(errex=1)
     server.main()
