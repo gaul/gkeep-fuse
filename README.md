@@ -13,11 +13,20 @@ pip install -r requirements.txt
 
 ## Usage
 
+Create a file with your Google credentials:
+
 ```
- export GOOGLE_KEEP_USER=yourname@gmail.com
- export GOOGLE_KEEP_PASSWORD=xxxxxxxxxxxxxxxx
-./gkeep_fuse.py mnt/
+<username> <password>
 ```
+
+Then run via:
+
+```
+./gkeep_fuse.py --auth /path/to/auth.txt mnt/
+```
+
+You can also use the `GOOGLE_KEEP_USER` and `GOOGLE_KEEP_PASSWORD` environment
+variables.
 
 If you use two-factor authentication you should use an
 [app password](https://myaccount.google.com/apppasswords), see

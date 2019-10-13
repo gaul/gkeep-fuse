@@ -158,22 +158,31 @@ class GKeepFuse(Fuse):  # type: ignore
 
 
 def main() -> None:
-    USER = os.environ["GOOGLE_KEEP_USER"]
-    PASSWORD = os.environ["GOOGLE_KEEP_PASSWORD"]
-
     keep = gkeepapi.Keep()
-    keep.login(USER, PASSWORD)
 
     usage = """
 Google Keep filesystem
 
 """ + Fuse.fusage
     server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do="setsingle")
+    server.parser.add_option("--auth", action="store", dest="auth", metavar="PATH", default=None, help="file with format: <username> <password>")
 
     if "-d" in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
 
-    server.parse(errex=1)
+    args = server.parse(errex=1)
+    auth = server.cmdline[0].auth
+    if auth is not None:
+        with open(auth, "r") as authfile:
+            user, password = authfile.read().strip().split(maxsplit=2)
+    else:
+        user = os.environ.get("GOOGLE_KEEP_USER", "")
+        password = os.environ.get("GOOGLE_KEEP_PASSWORD", "")
+        if len(user) == 0 or len(password) == 0:
+            server.parse(["-h"], errex=1)
+            sys.exit(1)
+
+    keep.login(user, password)
     server.main()
 
 
