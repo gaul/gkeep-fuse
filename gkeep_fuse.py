@@ -167,10 +167,11 @@ Google Keep filesystem
     server = GKeepFuse(keep, version="%prog " + fuse.__version__, usage=usage, dash_s_do="setsingle")
     server.parser.add_option("--auth", action="store", dest="auth", metavar="PATH", default=None, help="file with format: <username> <password>")
 
-    if "-d" in sys.argv:
+    server.parse(errex=1)
+
+    if "debug" in server.fuse_args.optlist:
         logging.basicConfig(level=logging.DEBUG)
 
-    args = server.parse(errex=1)
     auth = server.cmdline[0].auth
     if auth is not None:
         with open(auth, "r") as authfile:
