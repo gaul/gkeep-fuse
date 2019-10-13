@@ -1,7 +1,9 @@
 # gkeep-fuse
 
-FUSE interface for [Google Keep](https://www.google.com/keep/).  Currently
-supports listing, creating, reading, writing, renaming, and removing notes.
+FUSE interface for [Google Keep](https://www.google.com/keep/).  Supports
+listing, creating, reading, writing, renaming, and removing notes.  Notes use
+titles for the file names when present and an internal Keep identifier when
+absent.
 
 ## Installation
 
