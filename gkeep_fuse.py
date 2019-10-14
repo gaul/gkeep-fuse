@@ -72,6 +72,9 @@ class GKeepFuse(Fuse):  # type: ignore
         for note in self.keep.all():
             if note.deleted or note.trashed:
                 continue
+            if "/" in note.title:
+                logging.warning("Ignoring filename with /: %s", note.title)
+                continue
             # TODO: use modification date instead of id?
             entry = fuse.Direntry(note.title if note.title != "" else note.id)
             yield entry
