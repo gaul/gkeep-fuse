@@ -58,7 +58,7 @@ class GKeepFuse(Fuse):  # type: ignore
         if note is None:
             return -errno.ENOENT
 
-        st.st_mode = stat.S_IFREG | 0o444
+        st.st_mode = stat.S_IFREG | 0o664
         st.st_nlink = 1
         st.st_size = len(bytes(note.text, "utf-8"))
         st.st_mtime = note.timestamps.edited.timestamp()
