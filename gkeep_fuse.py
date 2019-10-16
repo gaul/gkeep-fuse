@@ -21,8 +21,8 @@ class MyStat(fuse.Stat):  # type: ignore
         self.st_ino = 0
         self.st_dev = 0
         self.st_nlink = 0
-        self.st_uid = 0
-        self.st_gid = 0
+        self.st_uid = os.getuid()
+        self.st_gid = os.getgid()
         self.st_size = 0
         self.st_atime = 0
         self.st_mtime = 0
